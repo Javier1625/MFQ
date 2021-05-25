@@ -30,7 +30,8 @@ def printf(format, *args):
 
 import csv
 
-if (sys.argv[1] =='-h'):
+if  ( len(sys.argv) >1):  
+    if ((sys.argv[1] =='-h')):
             printf("usage: mfq.py [file cvs] [quantum time priority queue] [quantum time RR queue]")
             printf("format csv file: pid, arrival_time, burst_time, priority ")
             exit()
