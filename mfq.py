@@ -22,6 +22,7 @@ import sys
 
 ################# Valores por defecto###############
 INPUT=[(1,0,14,2), (2,7,8,1), (3,3,10,0), (4,5,7,2),(5,1,5,3)]
+
 TQP=4 #quantum de tiempo cola prioridad. Valor por defecto
 TQF=4 #quantum de tiempo cola FIFO. Valor por defecto
 
@@ -53,15 +54,7 @@ if (len(sys.argv) >3):
             printf("TQF= %d \n", TQF)
             
 
-##print(Lista)
-##if (len(sys.argv) == 4):
-##            TQF=int(sys.argv[3])
-##            TQP=int(sys.argv[2])
-##elif ((len(sys.argv) == 3):
-##            TQP=int(sys.argv[2])
-##elif (((len(sys.argv) == 2):
-##             INPUT=Lista
-            
+
 
 # Variables Globales #
 #INPUT=Lista
@@ -81,8 +74,8 @@ CPU_F=-1  #indice cola FIFO
 Qt_FIFO=1 #quantum time cola FIFO
 FIN=False #Se termino el procesamiento
 MAXTIME=60 #maximi tiempo de procesamiento
+DEAD=0 # Sirve para terminar procesamiento en casos especiales
 
-#reader = csv.reader(csvfile, delimiter=",", quoting=csv.QUOTE_NONNUMERIC)
 
 
 #Funciones #
@@ -183,6 +176,8 @@ def PFQ():
         global Qt_FIFO
         global FIN
         global CLK
+        if (DEAD==1):
+            return
         if (FQ.empty() and FIN):
             return
         if (CPU_F == -1):
@@ -210,6 +205,7 @@ OUTPUT=Gen_salida()
 def PPQ():
     global CIP
     global CPU_P
+    global DEAD
     tupla=-1
     if (CIP == NP and PQ.empty()):
         return
@@ -239,13 +235,17 @@ def PPQ():
                     tupla=-1
         else:
                     pass
-########### No hay mas inserciones ################## 
+
     if( Burstime(CPU_P[1])):
               aux=PQ.get() #se saca de PQ para instalar en FQ
-              FQ.put(aux[1]) #inserta indice que estaba en PQ (prioridad, i)
+              #FQ.put(aux[1]) #inserta indice que estaba en PQ (prioridad, i)
               Set_resp_time(CPU_P[1])
-              Set_wait_time(CPU_P[1])
               Set_Finnish_time(CPU_P[1])
+              Set_wait_time(CPU_P[1])
+              if(FQ.empty() and PQ.empty()  and  (NP==1) and (CIP==1)):
+                       #Set_resp_time(CPU_P[1])
+                       DEAD=1
+                       return
               if (not(PQ.empty())):
                         CPU_P=PQ.queue[0] #toma el primer elemento de la cola
     if (Quantum_timeP(CPU_P[1])):
@@ -259,7 +259,6 @@ def PPQ():
     
     if (not(PQ.empty())):
          Set_Accumt(CPU_P[1])
-    
 
  #Procesamiento estadistico
 Rp=[] #tiempo de respuesta
@@ -270,10 +269,10 @@ Tat=[] #turn around time
 def Estadistica():
     global Rp, Ft, Wt, Tat
     for i in range(NP):
-        Rp=Rp+[OUTPUT[i][2]]
-        Ft=Ft+[OUTPUT[i][3]]
-        Wt=Wt+[OUTPUT[i][4]]
-        Tat=Tat+[OUTPUT[i][3]-INPUT[i][1]]
+        Rp=Rp+[OUTPUT[i][1]]
+        Ft=Ft+[OUTPUT[i][2]]
+        Wt=Wt+[OUTPUT[i][3]]
+        Tat=Tat+[OUTPUT[i][2]-INPUT[i][1]]
     Rpm=mean(Rp)
     Ftm=mean(Ft)
     Wtm=mean(Wt)
@@ -286,10 +285,13 @@ def Estadistica():
 
 for CLK in range (MAXTIME):
     PPQ()
+    if (DEAD==1):
+        break
     if (PQ.empty()):
         PFQ()
     if (FIN):
         break
+    
 print("       Data Frame Entrada")
 show(INPUT, "entrada")
 print()
@@ -298,11 +300,5 @@ printf("Quantum time: Cola Prioridad= %d, Cola RR= %d \n", TQP, TQF)
 printf("Se termino de procesar en t=%d \n", CLK+1)
 show(OUTPUT, "salida")
 Estadistica()
-    
-           
-
-
-
-                            
 
      
